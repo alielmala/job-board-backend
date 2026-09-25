@@ -27,9 +27,4 @@ class UnauthorizedError extends AppError {
     this.details = [];
   }
 }
-module.exports = {
-  AppError,
-  NotFoundError,
-  ValidationError,
-  UnauthorizedError,
-};
+export { AppError, NotFoundError, ValidationError, UnauthorizedError };
