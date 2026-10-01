@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { AppError, UnauthorizedError } from "../errors/AppError.js";
+import sendTokenCookie from "../utils/sendTokenCookie.js";
 
 const userResponse = (user) => ({
   id: user._id,
@@ -15,10 +16,32 @@ export const registerUser = async (req, res) => {
     throw new AppError("Email already in use", 400, "EMAIL_IN_USE");
   }
   const user = await User.create(req.body);
+  const token = generateToken(user._id);
+  sendTokenCookie(res, token);
+
   res.status(201).json({
     success: true,
     message: "Account created",
     user: userResponse(user),
-    token: generateToken(user._id),
+  });
+};
+
+export const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email }).select("+password");
+  if (!user) {
+    throw new UnauthorizedError("Invalid email or password");
+  }
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    throw new UnauthorizedError("Invalid email or password");
+  }
+  const token = generateToken(user._id);
+  sendTokenCookie(res, token);
+
+  res.status(200).json({
+    success: true,
+    message: "Logged in",
+    user: userResponse(user),
   });
 };

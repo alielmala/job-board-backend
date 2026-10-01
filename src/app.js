@@ -3,10 +3,14 @@ import cors from "cors";
 import morgan from "morgan";
 import authRoutes from "./routes/authRouters.js";
 import errorHandler from "./middleware/errorHandler.js";
+import cookieParser from "cookie-parser";
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
 app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.get("/", (req, res) => {
