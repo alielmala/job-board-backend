@@ -1,5 +1,6 @@
 import Job from "../models/Job.js";
 import escapeRegex from "../utils/escapeRegex.js";
+import { NotFoundError } from "../errors/AppError.js";
 
 export const createJob = async (req, res) => {
   const { title, company, location, type, salary, description } = req.body;
@@ -19,6 +20,37 @@ export const createJob = async (req, res) => {
   });
 };
 
+export const updateJob = async (req, res) => {
+  const job = await Job.findById(req.params.id);
+  if (!job) throw new NotFoundError("Job");
+  if (job.postedBy.toString() !== req.user.id) {
+    throw new AppError("You can only edit your own jobs", 403, "FORBIDDEN");
+  }
+  const { title, company, location, type, salary, description, isOpen } =
+    req.body;
+
+  if (title !== undefined) job.title = title;
+  if (company !== undefined) job.company = company;
+  if (location !== undefined) job.location = location;
+  if (type !== undefined) job.type = type;
+  if (salary !== undefined) job.salary = salary;
+  if (description !== undefined) job.description = description;
+  if (isOpen !== undefined) job.isOpen = isOpen;
+
+  await job.save();
+
+  res.json({ success: true, message: "Job updated", job });
+};
+export const deleteJob = async (req, res) => {
+  const job = await Job.findById(req.params.id);
+  if (!job) throw new NotFoundError("Job");
+  if (job.postedBy.toString() !== req.user.id) {
+    throw new AppError("You can only delete your own jobs", 403, "FORBIDDEN");
+  }
+  await job.deleteOne();
+
+  res.json({ success: true, message: "Job removed successfully" });
+};
 export const getJobs = async (req, res) => {
   const { location, type, salary_min, search } = req.query;
   const filter = { isOpen: true };
@@ -36,4 +68,25 @@ export const getJobs = async (req, res) => {
     count: jobs.length,
     jobs,
   });
+};
+
+export const getJobDetails = async (req, res) => {
+  const { id } = req.params;
+
+  const job = await Job.findById(id).populate("postedBy", "name email");
+
+  if (!job) {
+    throw new NotFoundError("Job is not found", 404);
+  }
+
+  res.json({
+    success: true,
+    job,
+  });
+};
+
+export const getMyJobs = async (req, res) => {
+  const jobs = await Job.find({ postedBy: req.user.id }).sort("-createdAt");
+
+  res.json({ success: true, count: jobs.length, jobs });
 };
