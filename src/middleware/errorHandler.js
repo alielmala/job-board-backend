@@ -33,7 +33,13 @@ const errorHandler = (err, req, res, next) => {
       code: "INVALID_ID",
     });
   }
-
+  if (err.name === "MulterError") {
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "CV must be smaller than 5MB"
+        : "File upload failed";
+    return res.status(400).json({ success: false, message, code: err.code });
+  }
   res.status(500).json({
     success: false,
     message: "Something went wrong",
