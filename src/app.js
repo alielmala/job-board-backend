@@ -5,6 +5,7 @@ import authRoutes from "./routes/authRouters.js";
 import errorHandler from "./middleware/errorHandler.js";
 import cookieParser from "cookie-parser";
 import jobRoutes from "./routes/jobRouters.js";
+import applicationRoutes from "./routes/applicationRouter.js";
 const app = express();
 
 app.use(
@@ -19,7 +20,7 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
-
+app.use("/api/applications", applicationRoutes);
 app.get("/", (req, res) => {
   res.json({
     message: "API is running",

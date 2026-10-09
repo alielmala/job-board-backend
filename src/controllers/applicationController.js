@@ -50,3 +50,38 @@ export const createApplication = async (req, res) => {
     application,
   });
 };
+
+export const getMyApplications = async (req, res) => {
+  const applications = await Application.find({ applicant: req.user._id })
+    .populate("job")
+    .sort({ createdAt: -1 });
+  res.status(200).json({
+    success: true,
+    applications,
+  });
+};
+
+export const getJobApplicants = async (req, res) => {
+  const job = await Job.findById(req.params.id);
+  if (!job) throw new NotFoundError("Job");
+
+  if (job.postedBy.toString() !== req.user.id.toString()) {
+    throw new AppError(
+      "You are not authorized to view applications for this job",
+      403,
+      "UNAUTHORIZED",
+    );
+  }
+  const { status } = req.query;
+  const filter = { job: job._id };
+  if (status) filter.status = status;
+  const applications = await Application.find(filter)
+    .populate("applicant", "name email")
+    .sort("-createdAt");
+  res.json({
+    success: true,
+    count: applications.length,
+    job: { id: job._id, title: job.title },
+    applications,
+  });
+};

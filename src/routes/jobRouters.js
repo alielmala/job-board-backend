@@ -9,8 +9,10 @@ import {
   getMyJobs,
 } from "../controllers/jobController.js";
 import upload from "../middleware/upload.js";
-
-import { createApplication } from "../controllers/applicationController.js";
+import {
+  createApplication,
+  getJobApplicants,
+} from "../controllers/applicationController.js";
 const router = express.Router();
 
 router.post("/", protect, restrictTo("recruiter"), createJob);
@@ -27,5 +29,12 @@ router.post(
   restrictTo("jobseeker"),
   upload.single("cv"),
   createApplication,
+);
+
+router.get(
+  "/:id/applicants",
+  protect,
+  restrictTo("recruiter"),
+  getJobApplicants,
 );
 export default router;
