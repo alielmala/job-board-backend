@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { deleteCV } from "../config/cloudinary.js";
 
 const applicationSchema = new mongoose.Schema(
   {
@@ -31,7 +32,7 @@ const applicationSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "reviewed", "rejected"],
+      enum: ["pending", "accepted", "rejected"],
       default: "pending",
     },
   },
@@ -39,6 +40,19 @@ const applicationSchema = new mongoose.Schema(
 );
 
 applicationSchema.index({ job: 1, applicant: 1 }, { unique: true });
+applicationSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function () {
+    if (this.cv?.publicId) {
+      try {
+        await deleteCV(this.cv.publicId);
+      } catch (err) {
+        console.error("Failed to delete CV from Cloudinary:", err.message);
+      }
+    }
+  },
+);
 const Application = mongoose.model("Application", applicationSchema);
 
 export default Application;

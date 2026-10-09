@@ -42,7 +42,14 @@ const jobSchema = new mongoose.Schema(
   { timestamps: true },
 );
 jobSchema.index({ title: "text", company: "text", description: "text" });
+jobSchema.pre("deleteOne", { document: true, query: false }, async function () {
+  const Application = mongoose.model("Application");
+  const applications = await Application.find({ job: this._id });
 
+  for (const app of applications) {
+    await app.deleteOne();
+  }
+});
 const Job = mongoose.model("Job", jobSchema);
 
 export default Job;

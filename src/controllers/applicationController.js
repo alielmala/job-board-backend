@@ -7,6 +7,8 @@ import {
 import { uploadCV, deleteCV } from "../config/cloudinary.js";
 import Application from "../models/Application.js";
 
+const ALLOWED_STATUSES = ["pending", "accepted", "rejected"];
+
 export const createApplication = async (req, res) => {
   if (!req.file) {
     throw new ValidationError("CV file is required");
@@ -83,5 +85,54 @@ export const getJobApplicants = async (req, res) => {
     count: applications.length,
     job: { id: job._id, title: job.title },
     applications,
+  });
+};
+
+export const updateApplicationStatus = async (req, res) => {
+  const { status } = req.body;
+  if (!ALLOWED_STATUSES.includes(status)) {
+    throw new ValidationError("Invalid application status");
+  }
+  const application = await Application.findById(req.params.id)
+    .populate("applicant", "name email")
+    .populate("job", "postedBy");
+  if (!application) throw new NotFoundError("Application");
+  if (application.job.postedBy.toString() !== req.user.id.toString()) {
+    throw new AppError(
+      "You are not authorized to update this application",
+      403,
+      "UNAUTHORIZED",
+    );
+  }
+  application.status = status;
+  await application.save();
+  res.json({
+    success: true,
+    message: "Application status updated",
+    application,
+  });
+};
+
+export const withdrawApplication = async (req, res) => {
+  const application = await Application.findById(req.params.id);
+  if (!application) throw new NotFoundError("Application");
+  if (application.applicant.toString() !== req.user.id.toString()) {
+    throw new AppError(
+      "You are not authorized to withdraw this application",
+      403,
+      "UNAUTHORIZED",
+    );
+  }
+  if (application.status !== "pending") {
+    throw new AppError(
+      "You can only withdraw applications that are pending",
+      400,
+      "INVALID_STATUS",
+    );
+  }
+  await application.deleteOne();
+  res.json({
+    success: true,
+    message: "Application withdrawn",
   });
 };
