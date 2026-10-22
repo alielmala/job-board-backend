@@ -1,8 +1,18 @@
+import mongoose from "mongoose";
 import Job from "../models/Job.js";
 import escapeRegex from "../utils/escapeRegex.js";
 import { AppError, NotFoundError } from "../errors/AppError.js";
 
 const SORT_FIELDS = ["createdAt", "updatedAt", "title", "company"];
+const SEARCH_FIELDS = ["title", "company", "description"];
+
+const searchClauses = (search) => {
+  const terms = String(search).trim().split(/\s+/).filter(Boolean).slice(0, 8);
+  return terms.map((term) => {
+    const pattern = new RegExp(escapeRegex(term), "i");
+    return { $or: SEARCH_FIELDS.map((field) => ({ [field]: pattern })) };
+  });
+};
 
 export const createJob = async (req, res) => {
   const { title, company, location, type, salary, description } = req.body;
@@ -59,10 +69,16 @@ export const getJobs = async (req, res) => {
   const { location, type, salary_min, search, sort } = req.query;
 
   const filter = { isOpen: true };
-  if (location) filter.location = new RegExp(escapeRegex(location), "i");
+  if (location)
+    filter.location = new RegExp(escapeRegex(String(location)), "i");
   if (type) filter.type = type;
-  if (salary_min) filter.salary = { $gte: Number(salary_min) };
-  if (search) filter.$text = { $search: search };
+  if (salary_min && Number.isFinite(Number(salary_min))) {
+    filter.salary = mongoose.trusted({ $gte: Number(salary_min) });
+  }
+  if (search) {
+    const clauses = searchClauses(search);
+    if (clauses.length) filter.$and = clauses;
+  }
 
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
@@ -70,8 +86,9 @@ export const getJobs = async (req, res) => {
 
   let sortBy = "-createdAt";
   if (sort) {
-    const field = sort.startsWith("-") ? sort.slice(1) : sort;
-    if (SORT_FIELDS.includes(field)) sortBy = sort;
+    const sortParam = String(sort);
+    const field = sortParam.startsWith("-") ? sortParam.slice(1) : sortParam;
+    if (SORT_FIELDS.includes(field)) sortBy = sortParam;
   }
 
   const [jobs, total] = await Promise.all([
