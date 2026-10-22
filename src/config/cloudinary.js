@@ -12,7 +12,7 @@ export const uploadCV = (buffer, filename) =>
       {
         resource_type: "raw",
         folder: "job-board/cvs",
-        public_id: `${Date.now()}-${filename.replace(/\.pdf$/i, "")}`,
+        public_id: `${Date.now()}-${base}.pdf`,
       },
       (error, result) => (error ? reject(error) : resolve(result)),
     );
