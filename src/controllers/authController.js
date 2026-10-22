@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import {
   AppError,
+  NotFoundError,
   UnauthorizedError,
   ValidationError,
 } from "../errors/AppError.js";

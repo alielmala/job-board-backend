@@ -1,6 +1,8 @@
 import Job from "../models/Job.js";
 import escapeRegex from "../utils/escapeRegex.js";
-import { NotFoundError } from "../errors/AppError.js";
+import { AppError, NotFoundError } from "../errors/AppError.js";
+
+const SORT_FIELDS = ["createdAt", "updatedAt", "title", "company"];
 
 export const createJob = async (req, res) => {
   const { title, company, location, type, salary, description } = req.body;
