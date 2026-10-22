@@ -4,10 +4,12 @@ import {
   updateApplicationStatus,
   withdrawApplication,
   getMyApplications,
+  downloadCV,
 } from "../controllers/applicationController.js";
 const router = express.Router();
 
 router.get("/my", protect, restrictTo("jobseeker"), getMyApplications);
+router.get("/:id/cv", protect, downloadCV);
 router.patch(
   "/:id/status",
   protect,

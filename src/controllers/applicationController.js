@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import Job from "../models/Job.js";
 import {
   AppError,
@@ -135,4 +136,40 @@ export const withdrawApplication = async (req, res) => {
     success: true,
     message: "Application withdrawn",
   });
+};
+
+const cvDisposition = (name) => {
+  const ascii = name
+    .replace(/[^\x20-\x7e]/g, "")
+    .replace(/["\\\r\n]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const fallback = /\S/.test(ascii.replace(/\.[^.]*$/, "")) ? ascii : "cv.pdf";
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+};
+
+export const downloadCV = async (req, res) => {
+  const application = await Application.findById(req.params.id).populate("job");
+  if (!application) throw new NotFoundError("Application");
+  if (!application.job) throw new NotFoundError("Job");
+
+  const isApplicant = application.applicant.toString() === req.user.id;
+  const isJobOwner = application.job.postedBy.toString() === req.user.id;
+  if (!isApplicant && !isJobOwner) {
+    throw new AppError("You are not allowed to view this CV", 403, "FORBIDDEN");
+  }
+
+  const upstream = await fetch(application.cv.url);
+  if (!upstream.ok || !upstream.body) {
+    throw new AppError("CV file is unavailable", 502, "CV_UNAVAILABLE");
+  }
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    cvDisposition(application.cv.originalName || "cv.pdf"),
+  );
+  if (application.cv.size) res.setHeader("Content-Length", application.cv.size);
+
+  Readable.fromWeb(upstream.body).pipe(res);
 };

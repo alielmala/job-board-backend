@@ -27,7 +27,7 @@ const applicationSchema = new mongoose.Schema(
         type: String,
         required: [true, "CV public ID is required"],
       },
-      orignalName: String,
+      originalName: String,
       size: Number,
     },
     status: {
